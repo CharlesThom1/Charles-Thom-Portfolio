@@ -1,1 +1,1 @@
-
+Detects endpoints making outbound TCP connections to port 53 (DNS over TCP) to non-local IPs, initiated by scripting interpreters. While TCP 53 can be legitimate, adversaries sometimes use Port 53 for covert C2 or data exfiltration to bypass egress controls expecting UDP-only DNS.
