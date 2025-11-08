@@ -1,1 +1,20 @@
-
+let RansomExtension = dynamic([".akira.", ".alphv.", ".blackcat.", ".blackbyte.", ".basta.", ".cactus.", ".cuba.", ".hive.", ".medusa.", ".play.", ".pysa.", ".quantum.", ".rhysida.", ".royal.", ".ransomexx.", ".sekhmet.", ".suncrypt.", ".zeppelin.", ".grief.", ".lorenz.", ".rook.", ".qilin.", ".blacksuit.", ".netwalker.", ".ragnar.", ".ragnarok.", ".clop.", ".phobos.", ".zepto.", ".odin.", ".thor.", ".aesir.", ".osiris.", ".lukitus.", ".ykcol.", ".shit.", ".diablo6.", ".ecc.", ".ezz.", ".exx.", ".zzz.", ".abc.", ".ttt.", ".micro.", ".aaa.", ".gdcb.", ".crab.", ".cezar.", ".arrow.", ".wallet.", ".combo.", ".gero.", ".meka.", ".moka.", ".npsg.", ".seto.", ".reco.", ".kuub.", ".nppp.", ".tabe.", ".mado.", ".ryuk.", ".wcry.", ".wncry.", ".globe.", ".707.", ".jaff.", ".matrix.", ".mole.", ".aurora.", ".ranzy.", ".crylock.", ".chaos."]);
+let RansomFileExtension = dynamic([".akira", ".alphv", ".blackcat", ".blackbyte", ".basta", ".cactus", ".cuba", ".hive", ".medusa", ".play", ".pysa", ".quantum", ".rhysida", ".royal", ".ransomexx", ".sekhmet", ".suncrypt", ".zeppelin", ".grief", ".lorenz", ".rook", ".qilin", ".blacksuit", ".netwalker", ".ragnar", ".ragnarok", ".clop", ".phobos", ".zepto", ".odin", ".thor", ".aesir", ".osiris", ".lukitus", ".ykcol", ".shit", ".diablo6", ".ecc", ".ezz", ".exx", ".zzz", ".abc", ".ttt", ".micro", ".aaa", ".gdcb", ".crab", ".cezar", ".arrow", ".wallet", ".combo", ".gero", ".meka", ".moka", ".npsg", ".seto", ".reco", ".kuub", ".nppp", ".tabe", ".mado", ".ryuk", ".wcry", ".wncry", ".globe", ".707", ".jaff", ".matrix", ".mole", ".aurora", ".ranzy", ".crylock", ".chaos"]);
+let BaseEvents =
+union DeviceFileEvents, DeviceProcessEvents, DeviceEvents, DeviceInfo
+| where ActionType has_any ("PowerShellCommand", "Powershell", "FileCreate", "FileModify", "FileName")
+| where AdditionalFields !contains "$pair.hive"
+| where FileName endswith (RansomFileExtension)
+      or ProcessCommandLine has_any (RansomExtension)
+      or AdditionalFields has_any (RansomExtension, RansomFileExtension)
+| project TimeGenerated, ActionType, AdditionalFields, DeviceName, InitiatingProcessAccountName, InitiatingProcessId, InitiatingProcessParentFileName;
+BaseEvents
+| summarize EventCount = count(),
+           FirstSeen = min(TimeGenerated),
+           LastSeen = max(TimeGenerated),
+           SampleActionTypes = make_set(ActionType, 5),
+           SampleParentProcs = make_set(InitiatingProcessParentFileName, 5),
+           Files = make_set(AdditionalFields, 100)
+    by DeviceName, bin(TimeGenerated, 10m)
+| where EventCount >= 5
+| project TimeWindowStart = TimeGenerated, DeviceName, Files, EventCount, FirstSeen, LastSeen, SampleActionTypes, SampleParentProcs
