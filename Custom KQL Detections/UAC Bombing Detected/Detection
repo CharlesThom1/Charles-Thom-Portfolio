@@ -1,1 +1,27 @@
-
+DeviceProcessEvents
+| where TimeGenerated >= ago(5m)
+| where FileName == "consent.exe"
+| summarize
+    UAC_Requests = count(),
+    FirstSeen = min(TimeGenerated),
+    LastSeen = max(TimeGenerated),
+    CommandLines = make_set(ProcessCommandLine, 50),
+    Users = make_set(InitiatingProcessAccountName, 10),
+    ParentProcesses = make_set(InitiatingProcessFileName, 10),
+    ParentCmds = make_set(InitiatingProcessCommandLine, 10),
+    ParentHashes = make_set(InitiatingProcessSHA256, 10),
+    ConsentPaths = make_set(FolderPath, 5)
+  by DeviceName
+| where UAC_Requests >= 20
+| project
+    DeviceName,
+    UAC_Requests,
+    FirstSeen,
+    LastSeen,
+    Users,
+    ParentProcesses,
+    ParentCmds,
+    ParentHashes,
+    ConsentPaths,
+    CommandLines
+| order by UAC_Requests desc
