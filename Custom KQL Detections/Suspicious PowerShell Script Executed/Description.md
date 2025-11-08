@@ -1,1 +1,1 @@
-
+This detection looks for the ps1 script that forces your clipboard to inject a malicious line of code into the host, threat intellgence shows the most common form of this is a click fix attack, in which a fake recapture tricks the user into executing arbitrary code.
