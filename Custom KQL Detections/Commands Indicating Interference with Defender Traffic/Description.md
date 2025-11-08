@@ -1,1 +1,1 @@
-
+Detects potentially malicious configuration, reset, or inspection of the Windows WinHTTP proxy using netsh or PowerShell. Adversaries may modify WinHTTP proxy settings to reroute or intercept outbound traffic (including Microsoft Defender updates/telemetry), enable egress for tools, or hide C2. This often appears during post-compromise staging, defense evasion, or exfiltration.
