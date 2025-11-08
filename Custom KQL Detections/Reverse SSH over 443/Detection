@@ -1,1 +1,7 @@
-
+DeviceProcessEvents
+| where FileName =~ "ssh.exe"
+| where ProcessCommandLine has_all ("-R", "-N")
+    and (ProcessCommandLine has "StrictHostKeyChecking=no")
+| project TimeGenerated, DeviceId, DeviceName, ProcessId, ProcessCreationTime, FileName,
+ProcessCommandLine, InitiatingProcessFileName, InitiatingProcessCommandLine,
+InitiatingProcessParentFileName, AccountName, ReportId
