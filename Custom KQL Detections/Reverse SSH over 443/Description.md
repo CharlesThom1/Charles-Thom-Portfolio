@@ -1,1 +1,1 @@
-
+Flags ssh.exe processes establishing reverse tunnels (−R) without executing a remote command (−N) while explicitly disabling host key verification (UserKnownHostsFile=/dev/null and StrictHostKeyChecking=no). This combination is commonly used for covert C2 tunnels and data egress paths.
