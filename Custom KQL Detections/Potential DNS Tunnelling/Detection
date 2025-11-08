@@ -1,1 +1,44 @@
-
+DeviceNetworkEvents
+| where RemotePort == 53 and Protocol startswith "Tcp"
+| where isnotempty(RemoteIP)
+| where not(
+    ipv4_is_in_range(RemoteIP, "127.0.0.0/8") or
+    ipv4_is_in_range(RemoteIP, "10.0.0.0/8") or
+    ipv4_is_in_range(RemoteIP, "172.16.0.0/12") or
+    ipv4_is_in_range(RemoteIP, "192.168.0.0/16")
+)
+| extend proc = tolower(InitiatingProcessFileName)
+| where proc in (
+    "powershell.exe",
+    "pwsh.exe",
+    "cmd.exe",
+    "nslookup.exe",
+    "dig.exe",
+    "host.exe",
+    "python.exe",
+    "perl.exe",
+    "ruby.exe",
+    "java.exe",
+    "javaw.exe",
+    "node.exe",
+    "curl.exe",
+    "wget.exe",
+    "certutil.exe",
+    "mshta.exe",
+    "wscript.exe",
+    "cscript.exe",
+    "bitsadmin.exe",
+    "ssh.exe",
+    "plink.exe",
+    "iodine.exe",
+    "dnscat2.exe",
+    "iodined.exe"
+)
+| summarize
+    ConnCount = count(),
+    FirstSeen = min(TimeGenerated),
+    LastSeen = max(TimeGenerated),
+    RemoteIPs = make_set(RemoteIP, 5),
+    SampleCmds = make_set(InitiatingProcessCommandLine, 5)
+  by DeviceName, InitiatingProcessFileName, bin(TimeGenerated, 5m)
+| order by LastSeen desc
