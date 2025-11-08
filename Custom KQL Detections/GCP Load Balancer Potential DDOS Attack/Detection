@@ -1,1 +1,40 @@
-
+let lookback = 1h;          
+let threshold = 1000;  
+let LegitUA = dynamic(["Mozilla", "Starling", "okhttp", "ServiceNow", "node", "Stripe"]);
+GCPLoadBalancerLogs_CL
+| where TimeGenerated >= ago(lookback)
+| extend UA = tostring(column_ifexists("UserAgent",""))
+| extend SrcIP = coalesce(
+    tostring(column_ifexists("ClientIp","")),
+    tostring(column_ifexists("SrcIp","")),
+    tostring(column_ifexists("c_ip","")),
+    tostring(column_ifexists("RemoteIP","")),
+    tostring(column_ifexists("RemoteIp","")),
+    tostring(column_ifexists("sourceIP","")),
+    tostring(column_ifexists("client_ip",""))         
+  )
+| where isnotempty(SrcIP)
+| where not(tolower(UA) has_any (LegitUA))
+| where not(ipv4_is_in_range(RemoteIp, "34.128.0.0/11"))
+| where not(ipv4_is_in_range(RemoteIp, "35.196.0.0/15"))
+| where not(ipv4_is_in_range(RemoteIp, "35.240.0.0/13"))
+| where not(ipv4_is_in_range(RemoteIp, "35.184.0.0/13"))
+| where not(ipv4_is_in_range(RemoteIp, "34.32.0.0/11"))
+| extend RequestPath = coalesce(
+    tostring(column_ifexists("Request","")),
+    tostring(column_ifexists("httpRequestRequestUrl","")),
+    tostring(column_ifexists("Url","")),
+    tostring(column_ifexists("requestUrl",""))
+  )
+| summarize
+    Hits = count(),
+    DistinctUserAgents = dcount(UA),
+    DistinctPaths = dcount(RequestPath),
+    FirstSeen = min(TimeGenerated),
+    LastSeen = max(TimeGenerated),
+    URLs_Visited = make_set(RequestUrl)
+  by SrcIP
+| where Hits >= threshold
+| extend WindowMin = toreal(lookback / 1m)
+| extend RatePerMin = Hits / WindowMin
+| order by Hits desc
