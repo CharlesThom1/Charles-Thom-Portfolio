@@ -1,1 +1,40 @@
-
+DeviceProcessEvents
+| where TimeGenerated > ago(100000h)
+| where InitiatingProcessFileName has_any ("chrome.exe", "msedge.exe", "firefox.exe", "iexplore.exe", "brave.exe", "opera.exe")
+| where FileName has_any ("wscript.exe", "cscript.exe", "mshta.exe", "powershell.exe",
+                          "pwsh.exe", "cmd.exe", "rundll32.exe", "curl.exe", "certutil.exe",
+                          "bitsadmin.exe", "regsvr32.exe", "msiexec.exe")
+| where ProcessCommandLine has_any (
+    ".svg",                    
+    ".js", ".vbs", ".wsf",     
+    ".hta",                    
+    "-enc", "-e ",             
+    "http://", "https://",     
+    "FromBase64String",        
+    "DownloadFile",            
+    "IEX", "Invoke-",          
+    "javascript:",             
+    "createObjectURL",         
+    "atob",
+    "msi"                     
+)
+or ProcessCommandLine matches regex @"\.(svg|js|vbs|hta|wsf)\b"
+or (FileName in~ ("powershell.exe", "pwsh.exe") and ProcessCommandLine has_any ("-enc", "-e ", "-w hidden", "-nop"))
+or (FileName =~ "mshta.exe" and ProcessCommandLine has_any ("http://", "https://", "javascript:"))
+or (FileName =~ "rundll32.exe" and ProcessCommandLine has_any ("javascript:", ".svg"))
+| extend
+    AccountName = tolower(AccountName),
+    CommandLineLength = strlen(ProcessCommandLine)
+| project
+    AlertTime = TimeGenerated,
+    DeviceName,
+    User = AccountName,
+    Browser = InitiatingProcessFileName,
+    SuspiciousProcess = FileName,
+    ProcessCommandLine,
+    CommandLineLength,
+    ParentProcessPath = InitiatingProcessFolderPath,
+    ProcessPath = FolderPath,
+    ProcessSHA256 = SHA256
+| extend Severity = "High"
+| sort by AlertTime desc;
