@@ -1,1 +1,45 @@
-
+let SuspiciousEmailAttachments =
+    EmailAttachmentInfo
+    | where TimeGenerated > ago(10m)
+    | where FileName has_any (".svg", ".html", ".htm", ".mhtml", ".mht")
+    | join kind=inner (
+        EmailEvents
+        | where TimeGenerated > ago(10m)
+        | where DeliveryAction !in ("Blocked", "Quarantined")
+        | project NetworkMessageId, RecipientEmailAddress, SenderFromAddress, Subject, TimeGenerated
+    ) on NetworkMessageId
+    | project-rename EmailTimestamp = TimeGenerated
+    | extend NormalizedUsername = tolower(replace_string(tostring(split(RecipientEmailAddress, "@")[0]), ".", ""))
+    | project RecipientEmailAddress, NormalizedUsername, SenderFromAddress, Subject, FileName, EmailTimestamp, NetworkMessageId;
+let ArchiveDownloads =
+    DeviceFileEvents
+    | where TimeGenerated > ago(10m)
+    | where ActionType in ("FileCreated", "FileRenamed")
+    | where FolderPath has_any ("\\Downloads\\", "\\Desktop\\", "\\AppData\\Local\\Temp\\", "\\Temp\\")
+    | where FileName has_any (".zip", ".iso", ".rar", ".7z", ".img", ".vhd")
+    | where InitiatingProcessFileName has_any ("chrome.exe", "msedge.exe", "firefox.exe", "iexplore.exe", "brave.exe", "opera.exe", "explorer.exe")
+    | extend NormalizedUsername = tolower(
+        case(
+            InitiatingProcessAccountName contains "\\", split(InitiatingProcessAccountName, "\\")[1],
+            InitiatingProcessAccountName
+        )
+    )
+    | project DeviceName, AccountName = InitiatingProcessAccountName, NormalizedUsername, FileName, FolderPath,
+              FileTimestamp = TimeGenerated, InitiatingProcessFileName, SHA256;
+SuspiciousEmailAttachments
+| join kind=inner (ArchiveDownloads) on NormalizedUsername
+| where FileTimestamp between (EmailTimestamp .. (EmailTimestamp + 1h))
+| project
+    AlertTime = FileTimestamp,
+    DeviceName,
+    User = RecipientEmailAddress,
+    EmailSubject = Subject,
+    AttachmentName = FileName,
+    DownloadedFile = FileName1,
+    DownloadPath = FolderPath,
+    Browser = InitiatingProcessFileName,
+    Sender = SenderFromAddress,
+    FileSHA256 = SHA256,
+    TimeDifference = datetime_diff('second', FileTimestamp, EmailTimestamp)
+| extend Severity = "Medium"
+| sort by AlertTime desc;
