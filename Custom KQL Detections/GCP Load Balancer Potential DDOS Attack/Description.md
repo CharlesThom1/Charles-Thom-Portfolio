@@ -1,1 +1,1 @@
-
+This detection looks for high amounts of requests from specific sources within a time frame and given threshold, this can be altered for each customer, if they use google workspace. If requests lean above the desired threashold, the detection will trigger an incident for a potential DDOS attack.
