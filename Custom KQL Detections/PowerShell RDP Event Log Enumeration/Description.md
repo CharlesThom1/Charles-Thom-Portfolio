@@ -1,1 +1,1 @@
-
+Detects suspicious use of PowerShell to enumerate Remote Desktop (RDP) session logon events (Event ID 21) from the TerminalServices/LocalSessionManager logs. This activity is commonly observed during post-compromise reconnaissance to map user activity, source IPs, and session timing.
