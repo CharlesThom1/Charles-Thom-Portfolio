@@ -1,1 +1,51 @@
-
+DeviceProcessEvents
+| where ProcessCommandLine has_any ("vssadmin")
+| where ProcessCommandLine has_any ("delete shadows", "shadowcopy delete", "list shadows")
+| extend InitiatingProcessCommandLineDynamic = parse_json(InitiatingProcessCommandLine)
+| mv-expand InitiatingProcessCommandLineDynamic
+| where InitiatingProcessCommandLineDynamic != "DellSupportAssistRemedationService.exe"
+| extend InitiatingProcessParentFileNameDynamic = parse_json(InitiatingProcessParentFileName)
+| mv-expand InitiatingProcessParentFileNameDynamic
+| where InitiatingProcessParentFileNameDynamic != "DellSupportAssistRemedationService.exe"
+| summarize
+    EventCount = count(),
+    FirstSeen = min(TimeGenerated),
+    LastSeen = max(TimeGenerated),
+    Commands = make_set(ProcessCommandLine),
+    Files = make_set(FileName),
+    Accounts = make_set(InitiatingProcessAccountName),
+    ProcessIds = make_set(ProcessId),
+    ParentProcesses = make_set(InitiatingProcessParentFileName),
+    ParentProcessIds = make_set(InitiatingProcessParentId),
+    ParentCommandLines = make_set(InitiatingProcessCommandLine),
+    FolderPaths = make_set(FolderPath),
+    SHA256Hashes = make_set(SHA256),
+    MD5Hashes = make_set(MD5),
+    AccountDomains = make_set(InitiatingProcessAccountDomain),
+    LogonIds = make_set(InitiatingProcessLogonId),
+    IntegrityLevels = make_set(InitiatingProcessIntegrityLevel),
+    TokenElevation = make_set(InitiatingProcessTokenElevation)
+    by DeviceName, bin(TimeGenerated, 1m)
+| extend
+    TimeWindow = strcat(format_datetime(FirstSeen, 'yyyy-MM-dd HH:mm'), " - ", format_datetime(LastSeen, 'HH:mm')),
+    Duration_Seconds = datetime_diff('second', LastSeen, FirstSeen)
+| project
+    TimeWindow,
+    DeviceName,
+    EventCount,
+    Duration_Seconds,
+    Accounts,
+    AccountDomains,
+    Commands,
+    Files,
+    FolderPaths,
+    ParentProcesses,
+    ParentCommandLines,
+    SHA256Hashes,
+    MD5Hashes,
+    ProcessIds,
+    ParentProcessIds,
+    LogonIds,
+    IntegrityLevels,
+    TokenElevation
+| order by TimeWindow desc
