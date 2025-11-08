@@ -1,13 +1,14 @@
 # Charles-Thom-Portfolio
 This is a portfolio of projects I have made whilst practicing cyber security, includes custom KQL detections, vibe coded web applications and technical blogs I have written. 
 
-Blogs:
+**Blogs:**
 
-Custom KQL Detections:
+
+**Custom KQL Detections:**
 
 I’ve uploaded a small selection of my KQL detections to showcase my range and capability. I’ve aimed to include at least one detection from as many areas as possible, demonstrating that I can create detections across all major attack vectors. While I’ve developed hundreds more, I’ve only shared a few examples here as a taster, since some of my other detections involve sensitive customer information.
 
-Vibe Codes:
+**Vibe Codes:**
 
 I’ve built and published several of my projects here to showcase my capability in both detection engineering and security-focused development. One of the main projects is an extensive SOC web application, designed to act as a multifunctional platform for security operations. It includes an IOC scraper for collecting and managing indicators of compromise, a threat intelligence integration module, a KQL query loader, and an audit logging system that allows the app to be threat modelled and actively monitored. The platform also features a custom-built refanger utility and a few hidden interactive elements for demonstration and engagement purposes.
 
