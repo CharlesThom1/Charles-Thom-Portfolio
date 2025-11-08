@@ -1,1 +1,1 @@
-
+This detection looks at PowerShell commands known to be used with Lampion operations, it merges two operations done within 5 minutes of each other that have a probable cause of a click fix attack related to Lampion.
