@@ -1,1 +1,41 @@
-
+// Suspicious RDP Event Log Enumeration via PowerShell
+// Detects PowerShell commands querying RDP session logon events (Event ID 21)
+// Often used for post-compromise reconnaissance to map user activity and source IPs
+union isfuzzy=true
+(DeviceProcessEvents
+| extend EventSource = "Process", Cmd = tostring(ProcessCommandLine)),
+(DeviceEvents
+| extend EventSource = "Event", Cmd = tostring(AdditionalFields))
+| extend file_lc = tolower(tostring(FileName))
+| extend parent_lc = tolower(tostring(InitiatingProcessFileName))
+| extend cmd_lc = tolower(tostring(Cmd))
+| where file_lc in ("powershell.exe","pwsh.exe","powershell_ise.exe","cmd.exe")
+| extend Score =
+iif(cmd_lc has "get-winevent", 1, 0) +
+iif(cmd_lc has_any ("terminalservices","localsessionmanager"), 2, 0) +
+iif(cmd_lc has_any (".id -eq 21","id -eq 21","eventid -eq 21"), 2, 0) +
+iif(cmd_lc has "toxml()", 1, 0) +
+iif(cmd_lc has_any ("eventxml.user","eventxml.address"), 1, 0) +
+iif(cmd_lc has_all ("user","address","timecreated"), 1, 0)
+| where Score >= 4
+| project
+TimeGenerated,
+DeviceName,
+AccountName,
+InitiatingProcessFileName,
+FileName,
+ProcessCommandLine = iif(isnotempty(ProcessCommandLine), ProcessCommandLine, Cmd),
+Score
+| order by TimeGenerated desc
+| summarize
+Count = count(),
+MaxScore = max(Score),
+SampleCommands = make_set(ProcessCommandLine, 3),
+FirstSeen = min(TimeGenerated),
+LastSeen = max(TimeGenerated)
+by DeviceName, AccountName, bin(TimeGenerated, 5m)
+| where Count >= 1
+| extend Severity = case(
+MaxScore >= 6, "High",
+MaxScore >= 4, "Medium",
+"Low")
