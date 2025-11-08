@@ -1,1 +1,18 @@
-
+let TimeWindow = 5;
+let InvokeRequestEvents = DeviceProcessEvents
+| where FileName =~ "powershell.exe"
+| where ProcessCommandLine contains "-windowstyle minimized -Command"
+| where ProcessCommandLine has "Invoke-WebRequest"
+| project TimeGenerated, DeviceId, InitiatingProcessId, ProcessCommandLine;
+let WScriptEvents = DeviceProcessEvents
+| where FileName =~ "WScript.exe"
+| project TimeGenerated, DeviceId, InitiatingProcessId, ProcessCommandLine;
+InvokeRequestEvents
+| join kind=inner (WScriptEvents) on DeviceId
+| where abs(datetime_diff('minute', TimeGenerated, TimeGenerated1)) <= TimeWindow
+| project 
+    PowerShell_Timestamp = TimeGenerated, 
+    WScript_Timestamp = TimeGenerated1, 
+    DeviceId, 
+    Invoke_CommandLine = ProcessCommandLine, 
+    WScript_CommandLine = ProcessCommandLine1
