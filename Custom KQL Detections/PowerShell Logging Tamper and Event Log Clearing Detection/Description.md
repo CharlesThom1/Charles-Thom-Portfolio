@@ -1,1 +1,1 @@
-
+Detects potential tampering with PowerShell logging and attempts to clear Windows event logs, as well as attempts to disable PowerShell history. Adversaries often disable or degrade telemetry to evade detection and clear forensic artifacts. This rule focuses on suspicious powershell.exe or pwsh.exe commands.
