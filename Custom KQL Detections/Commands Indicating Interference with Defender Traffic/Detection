@@ -1,1 +1,36 @@
-
+// Suspicious winhttp proxy configuration
+// Detects commands with setting/resetting winhttp proxy to intercept Defender traffic
+union isfuzzy=true
+(DeviceProcessEvents
+| extend EventSource = "Process", Cmd = tostring(ProcessCommandLine)),
+(DeviceEvents
+| extend EventSource = "Event", Cmd = tostring(AdditionalFields))
+| extend file_lc = tolower(tostring(FileName))
+| extend parent_lc = tolower(tostring(InitiatingProcessFileName))
+| extend cmd_lc = tolower(tostring(Cmd))
+| where file_lc in ("netsh.exe","cmd.exe","powershell.exe","pwsh.exe","powershell_ise.exe")
+| extend Score =
+iif(cmd_lc has "netsh" and cmd_lc has "winhttp", 1, 0) +
+iif(cmd_lc has " set " and cmd_lc has " proxy", 1, 0) +
+iif(cmd_lc has " reset " and cmd_lc has " proxy", 1, 0) +
+iif(cmd_lc has " import " and cmd_lc has " proxy", 1, 0) +
+iif(cmd_lc has " show " and cmd_lc has " proxy", 1, 0) +
+iif(cmd_lc has_any ("proxy-server=","bypass-list=","source=ie","http=","https="), 1, 0)
+| where Score >= 3
+| project
+TimeGenerated,
+DeviceName,
+AccountName,
+InitiatingProcessFileName,
+FileName,
+ProcessCommandLine = iif(isnotempty(ProcessCommandLine), ProcessCommandLine, Cmd),
+Score
+| order by TimeGenerated desc
+| summarize
+Count = count(),
+MaxScore = max(Score),
+SampleCommands = make_set(ProcessCommandLine, 5),
+FirstSeen = min(TimeGenerated),
+LastSeen = max(TimeGenerated)
+by DeviceName, AccountName, bin(TimeGenerated, 2m)
+| where Count >= 1
