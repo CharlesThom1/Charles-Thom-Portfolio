@@ -1,1 +1,1 @@
-
+This detection identifies devices where the consent.exe process has been executed 20 or more times within the last 5 minutes. This could indicate potential abuse of UAC bypass techniques or unusual user activity.
