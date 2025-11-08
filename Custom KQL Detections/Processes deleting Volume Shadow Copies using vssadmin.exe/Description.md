@@ -1,1 +1,1 @@
-
+This detection Flags processes deleting Volume Shadow Copies using vssadmin.exe. Adversaries and ransomware commonly use these commands (e.g., vssadmin delete shadows /all /quiet) to inhibit recovery.
